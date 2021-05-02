@@ -9,7 +9,7 @@ def build_composite_expr(query_values, entity_name, date):
     """Builds a composite expression with ANDs in OR to be used as MAG query.
 
     Args:
-        query_values (:obj:`list` of str): Phrases to query MAG with. 
+        query_values (:obj:`list` of str): Phrases to query MAG with.
         entity_name (str): MAG attribute that will be used in query.
         date (:obj:`tuple` of `str`): Time period of the data collection.
 
@@ -120,7 +120,7 @@ def query_fields_of_study(
 
     Returns:
         (:obj:`list` of `dict`): processed results from the api query
-    
+
     """
     if ids is not None and levels is None:
         expr_args = (ids, "Id")
@@ -180,3 +180,8 @@ def query_fields_of_study(
 
             if results_limit is not None and offset >= results_limit:
                 break
+
+
+def query_by_id(ids):
+    query_ids = ",".join([f"Id={id}" for id in ids])
+    return f"expr=OR({query_ids})".replace("'", "")
