@@ -24,6 +24,7 @@ The work in this repository is organised in a metaflow pipeline with the followi
     - Annual publications in conferences and journals.
     - Number of annual publications in CI, AI+CI.
 11. Collect metadata (publication date, title, abstract etc) for paper referenced by a CI paper. The pickled responses are stored locally in `data/interim/`.
+12. Calculate annual research diversity using their Fields of Study and Shannon diversity index. This produces an Altair plot which is stored in `reports/figures` as an HTML page.
 
 ### Notes
 - You can use the same pipeline to query MAG with a conference or journal name as described in [Orion's docs](https://docs.orion-search.org/docs/The%20model%20config%20file#querying-microsoft-academic-knowledge-api).
