@@ -201,7 +201,7 @@ class AffiliationType(Base):
     type = Column(Integer)
 
 
-class References(Base):
+class Reference(Base):
     """MAG references."""
 
     __tablename__ = "mag_references"
