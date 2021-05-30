@@ -2,6 +2,7 @@ seed: 42
 data:
     db_name: "ci_db"
     external_path: "data/raw/"
+    references_path: "data/interim/"
     mag:
         query_values:
             [
@@ -13,14 +14,10 @@ data:
                 "wisdom of the crowd",
                 "social computing",
                 "human computation",
-                "citizen engagement",
                 "group decision making",
                 "collaborative problem solving",
-                "extended cognition",
-                "knowledge creation",
                 "open source intelligence",
                 "participatory decision making",
-                "prediction market",
                 "swarm intelligence",
             ]
         entity_name: "F.FN"
@@ -410,4 +407,3 @@ plots:
         ]
     fos_mapping:
         "Environmental resource management": "Environmental planning"
-        "XYZ": "AAA"
