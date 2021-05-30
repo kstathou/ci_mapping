@@ -12,6 +12,8 @@ import glob
 import toolz
 import pickle
 import os
+import ast
+import numpy as np
 import ci_mapping
 from ci_mapping import logger
 from ci_mapping.data.create_db_and_tables import create_db_and_tables
@@ -19,6 +21,7 @@ from ci_mapping.data.query_mag import (
     query_mag_api,
     query_fields_of_study,
     build_composite_expr,
+    query_by_id,
 )
 from ci_mapping.data.geocode import place_by_id, place_by_name, parse_response
 from ci_mapping.utils.utils import unique_dicts, unique_dicts_by_value, flatten_lists
@@ -46,6 +49,7 @@ from ci_mapping.data.mag_orm import (
     AffiliationLocation,
     AffiliationType,
     OpenAccess,
+    Reference,
 )
 from ci_mapping.analysis.descriptive_analysis import (
     annual_publication_increase,
@@ -139,6 +143,16 @@ class CollectiveIntelligenceFlow(FlowSpec):
         help="Path to external data.",
         default=f'{ci_mapping.project_dir}/{config["external_path"]}',
     )
+    store_path_references = Parameter(
+        "store_path_references",
+        help="Path to store MAG response files.",
+        default=mag_config["store_path_references"],
+    )
+    references_path = Parameter(
+        "references_path",
+        help="Path to downloaded reference data.",
+        default=f'{ci_mapping.project_dir}/{config["references_path"]}',
+    )
     fos_subset = Parameter(
         "fos_subset",
         help="Subset of Fields of Study related to AI.",
@@ -208,7 +222,7 @@ class CollectiveIntelligenceFlow(FlowSpec):
         create_db_and_tables(self.db_name)
 
         # Proceed to next task
-        # self.next(self.data_wrangling)
+        # self.next(self.open_access_journals)
         self.next(self.collect_mag)
 
     @step
@@ -422,7 +436,6 @@ class CollectiveIntelligenceFlow(FlowSpec):
             s.add(CoreControlGroup(id=idx, type=row["type"]))
             s.commit()
 
-        # self.next(self.open_access_journals)
         self.next(self.geocode_affiliation)
 
     @step
@@ -448,7 +461,6 @@ class CollectiveIntelligenceFlow(FlowSpec):
             else:
                 continue
         self.next(self.open_access_journals)
-        # self.next(self.end)
 
     @step
     def open_access_journals(self):
@@ -579,6 +591,87 @@ class CollectiveIntelligenceFlow(FlowSpec):
         # Figure 9: Annual publication count
         annual_publication_count(self.data)
 
+        # self.next(self.end)
+        self.next(self.collect_references)
+
+    @step
+    def collect_references(self):
+        # Connect to postgresql
+        s = self._create_session()
+
+        # Read mag_papers table
+        df = pd.read_sql(s.query(Paper).statement, s.bind)
+
+        # Add nulls and transform to list
+        df["references"] = df["references"].apply(lambda x: np.nan if x == "NaN" else x)
+        df["references"] = df["references"].apply(
+            lambda x: ast.literal_eval(x) if isinstance(x, str) else np.nan
+        )
+
+        # Get all references
+        refs = []
+        for references in df["references"].dropna():
+            refs.extend(references)
+        logger.info(f"Unique references: {len(set(refs))}")
+
+        i = 0
+        # Create queries
+        for ids in toolz.itertoolz.partition_all(1000, set(refs)):
+            query = query_by_id(ids)
+
+            data = query_mag_api(
+                query,
+                self.metadata,
+                self.subscription_key,
+            )
+
+            if self.with_doi:
+                # Keep only papers with a DOI
+                results = [ents for ents in data["entities"] if "DOI" in ents.keys()]
+            else:
+                results = [ents for ents in data["entities"]]
+
+            # Store results
+            with open(
+                f"{ci_mapping.project_dir}/{self.store_path_references}_{i}.pickle",
+                "wb",
+            ) as h:
+                pickle.dump(results, h)
+            logger.info(f"Number of stored results from query {i}: {len(results)}")
+
+            i += 1
+
+        self.next(self.parse_references)
+
+    @step
+    def parse_references(self):
+        """Parse MAG responses to PostgreSQL."""
+        # Connect to postgresql
+        s = self._create_session()
+
+        # Read MAG references
+        data = []
+        for filename in glob.iglob("".join([self.references_path, "*.pickle"])):
+            with open(filename, "rb") as h:
+                data.extend(pickle.load(h))
+
+        # Collect IDs from table to ensure we're not inserting duplicates
+        paper_ids = {id_[0] for id_ in s.query(Reference.id)}
+
+        # Remove duplicates and keep only papers that are not already in the mag_papers table.
+        data = [
+            d for d in unique_dicts_by_value(data, "Id") if d["Id"] not in paper_ids
+        ]
+        logger.info(f"Number of unique  papers not existing in DB: {len(data)}")
+
+        papers = [parse_papers(response) for response in data]
+        logger.info(f"Completed parsing papers: {len(papers)}")
+
+        logger.info("Parsing completed!")
+
+        # Insert dicts into postgresql
+        s.bulk_insert_mappings(Reference, papers)
+        s.commit()
         self.next(self.end)
 
     @step
