@@ -23,6 +23,7 @@ The work in this repository is organised in a metaflow pipeline with the followi
     - Field of study comparison for CI, AI+CI. Produce plots for levels 1, 2 and 3 of the MAG hierarchy. Also produce a plot for a pre-selected list of Fields of Study.
     - Annual publications in conferences and journals.
     - Number of annual publications in CI, AI+CI.
+11. Collect metadata (publication date, title, abstract etc) for paper referenced by a CI paper. The pickled responses are stored locally in `data/interim/`.
 
 ### Notes
 - You can use the same pipeline to query MAG with a conference or journal name as described in [Orion's docs](https://docs.orion-search.org/docs/The%20model%20config%20file#querying-microsoft-academic-knowledge-api).
