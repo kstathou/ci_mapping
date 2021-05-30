@@ -201,6 +201,27 @@ class AffiliationType(Base):
     type = Column(Integer)
 
 
+class Reference(Base):
+    """MAG references."""
+
+    __tablename__ = "mag_references"
+
+    id = Column(BIGINT, primary_key=True, autoincrement=False)
+    prob = Column(Float)
+    title = Column(TEXT)
+    publication_type = Column(TEXT)
+    year = Column(TEXT)
+    date = Column(TEXT)
+    citations = Column(Integer)
+    references = Column(
+        TEXT
+    )  # This is transformed from list to string using json.dumps().
+    doi = Column(VARCHAR(200))
+    publisher = Column(TEXT)
+    bibtex_doc_type = Column(TEXT)
+    abstract = Column(TEXT)
+
+
 if __name__ == "__main__":
     import os
     import logging

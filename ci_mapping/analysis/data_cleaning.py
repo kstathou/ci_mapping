@@ -58,7 +58,9 @@ def clean_data(s):
         "p": "Conference paper",
     }
 
-    mag["publication_type"] = mag.publication_type.apply(lambda x: publication_type_[x])
+    mag["publication_type"] = mag.publication_type.apply(
+        lambda x: publication_type_[x] if x in publication_type_.keys() else "UNKNOWN"
+    )
     mag["bibtex_doc_type"] = mag.bibtex_doc_type.apply(
         lambda x: bibtext_doc_type_[x] if isinstance(x, str) else np.nan
     )

@@ -9,7 +9,7 @@ from ci_mapping.utils.utils import inverted2abstract
 
 def parse_papers(response):
     """Parse paper information from a MAG API response.
-    
+
     Args:
         response (json): Response from MAG API in JSON format. Contains paper information.
 
@@ -61,7 +61,7 @@ def parse_papers(response):
 
 def parse_conference(response, paper_id):
     """Parse conference information from a MAG API response.
-    
+
     Args:
         response (json): Response from MAG API in JSON format. Contains all paper information.
         paper_id (int): Paper ID.
@@ -79,7 +79,7 @@ def parse_conference(response, paper_id):
 
 def parse_journal(response, paper_id):
     """Parse journal information from a MAG API response.
-    
+
     Args:
         response (json): Response from MAG API in JSON format. Contains all paper information.
         paper_id (int): Paper ID.
