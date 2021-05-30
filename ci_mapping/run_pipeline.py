@@ -61,11 +61,14 @@ from ci_mapping.analysis.descriptive_analysis import (
     annual_fields_of_study_usage,
     papers_in_journals_and_conferences,
     annual_publication_count,
+    plot_shannon_diversity,
 )
 from ci_mapping.analysis.data_cleaning import (
     clean_data,
     clean_author_affiliations,
 )
+from skbio.diversity.alpha import shannon
+from collections import Counter
 
 load_dotenv(find_dotenv())
 config = ci_mapping.config["data"]
@@ -222,7 +225,6 @@ class CollectiveIntelligenceFlow(FlowSpec):
         create_db_and_tables(self.db_name)
 
         # Proceed to next task
-        # self.next(self.open_access_journals)
         self.next(self.collect_mag)
 
     @step
@@ -672,6 +674,48 @@ class CollectiveIntelligenceFlow(FlowSpec):
         # Insert dicts into postgresql
         s.bulk_insert_mappings(Reference, papers)
         s.commit()
+        self.next(self.shannon_diversity)
+
+    @step
+    def shannon_diversity(self):
+        """Calculate shannon diversity using the Fields of Study."""
+        # Connect to postgresql
+        s = self._create_session()
+
+        fos = pd.read_sql(s.query(FieldOfStudy).statement, s.bind)
+        pfos = pd.read_sql(s.query(PaperFieldsOfStudy).statement, s.bind)
+        paper = pd.read_sql(s.query(Paper).statement, s.bind)
+
+        # List of fields of study names for each paper
+        pfos = pfos.merge(fos, left_on="field_of_study_id", right_on="id")[
+            ["paper_id", "field_of_study_id", "name"]
+        ]
+        grouped_pfos = pd.DataFrame(
+            pfos.groupby("paper_id").name.agg(list)
+        ).reset_index()
+        paper = paper.merge(grouped_pfos, left_on="id", right_on="paper_id")
+
+        # Create an empty dataframe with all the FoS as column names
+        fos = set(flatten_lists(paper["name"].to_list()))
+        fos = pd.DataFrame(columns=fos)
+
+        # Fill the count vectors
+        for year, fields_of_study in (
+            paper[["year", "name"]].groupby("year").name.agg(list).iteritems()
+        ):
+            annual_count_vector = Counter(flatten_lists(fields_of_study))
+
+            for field_of_study, count in annual_count_vector.items():
+                fos.loc[year, field_of_study] = count
+        fos = fos.fillna(0)
+
+        # Calculate annual shannon diversity
+        df = pd.DataFrame()
+        for i, year in enumerate(fos.index):
+            df.loc[i, "Shannon diversity index"] = shannon(fos.loc[year].values)
+            df.loc[i, "Year"] = year
+
+        plot_shannon_diversity(df)
         self.next(self.end)
 
     @step
