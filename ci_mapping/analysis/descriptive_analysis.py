@@ -136,7 +136,9 @@ def publications_by_affiliation_type(data, filename="publications_by_affiliation
     # Plotting
     alt.Chart(df).mark_point(opacity=1, filled=True, size=80).encode(
         alt.X("category:N", title=None),
-        alt.Y("value:Q",),
+        alt.Y(
+            "value:Q",
+        ),
         alt.Color("type:N", legend=alt.Legend(title="Category")),
         alt.Column("year"),
         tooltip=["year", "value", "type", "category"],
@@ -209,7 +211,8 @@ def international_collaborations(
 
 
 def industry_non_industry_collaborations(
-    paper_author_aff, filename="industry_non_industry_collaborations",
+    paper_author_aff,
+    filename="industry_non_industry_collaborations",
 ):
     """Industry - academia collaborations: % in CI, AI+CI
 
@@ -332,7 +335,9 @@ def _fos_plot(df, filename, fos_level=""):
         .transform_calculate(
             category=alt.expr.if_(alt.datum.type == "CI", "CI", "AI+CI")
         )
-        .properties(width=350,)
+        .properties(
+            width=350,
+        )
     )
 
     color_scale = alt.Scale(domain=["CI", "AI+CI"])
@@ -354,7 +359,10 @@ def _fos_plot(df, filename, fos_level=""):
     )
 
     middle = (
-        base.encode(y=alt.Y("name", axis=None), text=alt.Text("name"),)
+        base.encode(
+            y=alt.Y("name", axis=None),
+            text=alt.Text("name"),
+        )
         .mark_text()
         .properties(width=200)
     )
@@ -389,7 +397,7 @@ def annual_fields_of_study_usage(
     top_n=None,
     filename="annual_fields_of_study_usage",
 ):
-    """Field of study comparison for CI, AI+CI. 
+    """Field of study comparison for CI, AI+CI.
 
     Args:
         data (`pd.DataFrame`): MAG paper data.
@@ -501,7 +509,11 @@ def annual_fields_of_study_usage(
 
 
 def papers_in_journals_and_conferences(
-    data, journals, conferences, top_n, filename="papers_in_journals_and_conferences",
+    data,
+    journals,
+    conferences,
+    top_n,
+    filename="papers_in_journals_and_conferences",
 ):
     """Annual publications in conferences and journals.
 
@@ -576,4 +588,15 @@ def papers_in_journals_and_conferences(
     )
 
     alt.hconcat(j, c).save(f"{ci_mapping.project_dir}/reports/figures/{filename}.html")
+    logger.info(f"Stored {filename} plot.")
+
+
+def plot_shannon_diversity(df, filename="shannon_diversity_index"):
+    alt.Chart(df).mark_line().encode(
+        alt.X("Year"), alt.Y("Shannon diversity index")
+    ).configure_legend(titleFontSize=12, labelFontSize=12).configure_axis(
+        labelFontSize=12, titleFontSize=12
+    ).save(
+        f"{ci_mapping.project_dir}/reports/figures/{filename}.html"
+    )
     logger.info(f"Stored {filename} plot.")
